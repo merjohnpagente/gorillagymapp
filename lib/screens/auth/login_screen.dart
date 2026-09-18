@@ -48,7 +48,11 @@ class _LoginScreenState extends State<LoginScreen>
       _error = null;
     });
     try {
-      final user = await AuthService().signIn(_emailCtrl.text, _passCtrl.text);
+      final user = await AuthService()
+          .signIn(_emailCtrl.text, _passCtrl.text)
+          .timeout(const Duration(seconds: 8), onTimeout: () {
+        throw Exception('Login timed out. Check internet or try admin/admin123');
+      });
       if (!mounted) return;
       if (user == null) throw Exception('User not found.');
       Navigator.pushReplacement(
@@ -60,8 +64,20 @@ class _LoginScreenState extends State<LoginScreen>
         ),
       );
     } catch (e) {
+      // Handle FirebaseAuth errors in Bisaya-friendly message
+      String msg = e.toString().replaceAll('Exception: ', '');
+      if (msg.contains('TimeoutException') || msg.contains('timed out')) {
+        msg = 'Dugay kaayo — timeout. Check internet then try again. (admin / admin123)';
+      } else if (msg.contains('wrong-password') || msg.contains('INVALID_LOGIN_CREDENTIALS')) {
+        msg = 'Sayop ang password. Try admin123';
+      } else if (msg.contains('user-not-found') || msg.contains('INVALID_LOGIN_CREDENTIALS')) {
+        msg = 'Wala nakit-an ang account. Use admin / admin123 or contact admin.';
+      } else if (msg.contains('network-request-failed')) {
+        msg = 'Walay internet. Check WiFi/data.';
+      }
+      if (!mounted) return;
       setState(() {
-        _error = e.toString().replaceAll('Exception: ', '');
+        _error = msg;
         _loading = false;
       });
     }

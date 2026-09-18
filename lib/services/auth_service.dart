@@ -10,14 +10,15 @@ class AuthService {
   User? get currentUser => _auth.currentUser;
 
   // ── Get role ───────────────────────────────────────────
-  // SECURITY: Never default to admin on failure. Missing/error => member.
+  // Optimized: single get (server + cache fallback) with 3s timeout instead of 5s+5s
+  // Uses Firestore's default behavior which is much faster on good network and instant offline
   Future<String> getUserRole(String uid) async {
     try {
       final doc = await _db
           .collection('users')
           .doc(uid)
-          .get(const GetOptions(source: Source.server))
-          .timeout(const Duration(seconds: 5));
+          .get()
+          .timeout(const Duration(seconds: 3));
       return doc.data()?['role'] ?? 'member';
     } catch (_) {
       try {
@@ -52,31 +53,33 @@ class AuthService {
 
     final uid = cred.user!.uid;
 
-    // Try server first
+    // Fast path: single get with 2s timeout — avoids "sge rag loading" (stuck spinner)
     try {
       final doc = await _db
           .collection('users')
           .doc(uid)
-          .get(const GetOptions(source: Source.server))
-          .timeout(const Duration(seconds: 5));
+          .get()
+          .timeout(const Duration(seconds: 2));
       if (doc.exists) return GymUser.fromMap(doc.data()!, uid);
     } catch (e) {
       if (e.toString().contains('FAILED_PRECONDITION')) rethrow;
+      // timeout or network error → fall through to cache/synthetic
     }
 
-    // Try cache second
+    // Fallback to cache with 1.5s timeout — instant offline
     try {
       final doc = await _db
           .collection('users')
           .doc(uid)
-          .get(const GetOptions(source: Source.cache));
+          .get(const GetOptions(source: Source.cache))
+          .timeout(const Duration(milliseconds: 1500));
       if (doc.exists) return GymUser.fromMap(doc.data()!, uid);
     } catch (e) {
       if (e.toString().contains('FAILED_PRECONDITION')) rethrow;
     }
 
     // Auto-create missing admin profile for the seeded admin account
-    // This fixes the case where Auth user exists but Firestore doc hasn't been created yet
+    // Do NOT await indefinitely — fire-and-forget with 2s timeout so login never hangs
     final isSeedAdmin = normalized == 'admin@gorillagym.com';
     if (isSeedAdmin) {
       final adminUser = GymUser(
@@ -87,10 +90,11 @@ class AuthService {
         createdAt: DateTime.now(),
         isActive: true,
       );
-      try {
-        await _db.collection('users').doc(uid).set(adminUser.toMap());
-        return adminUser;
-      } catch (_) {}
+      // Fire-and-forget: don't block login if Firestore rules/network slow
+      _db.collection('users').doc(uid).set(adminUser.toMap()).timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {},
+      );
       return adminUser;
     }
 
@@ -167,8 +171,8 @@ class AuthService {
       final doc = await _db
           .collection('users')
           .doc(uid)
-          .get(const GetOptions(source: Source.server))
-          .timeout(const Duration(seconds: 5));
+          .get()
+          .timeout(const Duration(seconds: 2));
       if (doc.exists) return GymUser.fromMap(doc.data()!, uid);
     } catch (_) {}
 
@@ -176,7 +180,8 @@ class AuthService {
       final doc = await _db
           .collection('users')
           .doc(uid)
-          .get(const GetOptions(source: Source.cache));
+          .get(const GetOptions(source: Source.cache))
+          .timeout(const Duration(milliseconds: 1200));
       if (doc.exists) return GymUser.fromMap(doc.data()!, uid);
     } catch (_) {}
 
@@ -193,7 +198,7 @@ class AuthService {
           .where('role', isEqualTo: 'member')
           .orderBy('createdAt', descending: true)
           .get()
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 3));
       return snap.docs.map((d) => GymUser.fromMap(d.data(), d.id)).toList();
     } on FirebaseException catch (e) {
       if (e.code == 'failed-precondition' && e.message?.contains('index') == true) {

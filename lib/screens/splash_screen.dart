@@ -48,7 +48,8 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _navigate() async {
-    await Future.delayed(const Duration(milliseconds: 2200));
+    // Shortened from 2200ms → 1200ms to feel snappy (animation is 1100ms)
+    await Future.delayed(const Duration(milliseconds: 1200));
     if (!mounted) return;
 
     final user = FirebaseAuth.instance.currentUser;
@@ -61,7 +62,7 @@ class _SplashScreenState extends State<SplashScreen>
     try {
       final role = await AuthService()
           .getUserRole(user.uid)
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 3));
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
