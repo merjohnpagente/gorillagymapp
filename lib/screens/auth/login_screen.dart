@@ -132,22 +132,33 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                         ),
                         const SizedBox(height: 32),
-                        const Text('Welcome back', style: AppTheme.displayMd),
+                         const Text('Welcome back', style: AppTheme.displayMd),
                         const SizedBox(height: 8),
                         const Text('Sign in to Gorilla Gym',
                             style: AppTheme.bodyMuted),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryDim,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppTheme.primary.withValues(alpha: 0.22)),
+                          ),
+                          child: const Text('Demo: admin / admin123  →  admin@gorillagym.com',
+                              style: TextStyle(color: AppTheme.textMuted, fontSize: 11)),
+                        ),
                         const SizedBox(height: 40),
 
-                        // Email
+                        // Email (supports "admin" shorthand)
                         TextFormField(
                           controller: _emailCtrl,
                           keyboardType: TextInputType.emailAddress,
                           style: const TextStyle(color: Colors.white),
-                          decoration: AppTheme.inputDecoration('Email address',
+                          decoration: AppTheme.inputDecoration('Email or username',
                               icon: Icons.email_outlined),
-                          validator: (v) => (v?.contains('@') ?? false)
+                          validator: (v) => (v?.trim().isNotEmpty ?? false)
                               ? null
-                              : 'Enter a valid email',
+                              : 'Required',
                         ),
                         const SizedBox(height: 16),
 

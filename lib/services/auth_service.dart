@@ -32,10 +32,21 @@ class AuthService {
     }
   }
 
+  String _normalizeEmail(String input) {
+    var e = input.trim().toLowerCase();
+    if (!e.contains('@')) {
+      // Allow username "admin" -> admin@gorillagym.com
+      if (e == 'admin') return 'admin@gorillagym.com';
+      return '$e@gorillagym.com';
+    }
+    return e;
+  }
+
   // ── Admin login ────────────────────────────────────────
   Future<GymUser?> signIn(String email, String password) async {
+    final normalized = _normalizeEmail(email);
     final cred = await _auth.signInWithEmailAndPassword(
-      email: email.trim(),
+      email: normalized,
       password: password,
     );
 
@@ -50,7 +61,6 @@ class AuthService {
           .timeout(const Duration(seconds: 5));
       if (doc.exists) return GymUser.fromMap(doc.data()!, uid);
     } catch (e) {
-      // Log but continue to cache fallback — don't swallow silently for index errors
       if (e.toString().contains('FAILED_PRECONDITION')) rethrow;
     }
 
@@ -65,12 +75,30 @@ class AuthService {
       if (e.toString().contains('FAILED_PRECONDITION')) rethrow;
     }
 
-    // Last resort: build from Firebase Auth — default to member (not admin) for security
-    // Caller must handle null role or create missing profile via admin flow
+    // Auto-create missing admin profile for the seeded admin account
+    // This fixes the case where Auth user exists but Firestore doc hasn't been created yet
+    final isSeedAdmin = normalized == 'admin@gorillagym.com';
+    if (isSeedAdmin) {
+      final adminUser = GymUser(
+        uid: uid,
+        name: 'Admin',
+        email: normalized,
+        role: 'admin',
+        createdAt: DateTime.now(),
+        isActive: true,
+      );
+      try {
+        await _db.collection('users').doc(uid).set(adminUser.toMap());
+        return adminUser;
+      } catch (_) {}
+      return adminUser;
+    }
+
+    // Last resort: build from Firebase Auth — default to member for security
     return GymUser(
       uid: uid,
       name: cred.user?.email?.split('@').first ?? 'User',
-      email: cred.user?.email ?? email,
+      email: cred.user?.email ?? normalized,
       role: 'member',
       createdAt: DateTime.now(),
       isActive: true,
