@@ -193,21 +193,26 @@ class _MemberDashboardState extends State<MemberDashboard> {
             ),
             const SizedBox(height: 24),
 
-            // Membership status card
+            // Membership status card — nindot premium
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: active
-                      ? [const Color(0xFF0F1F15), const Color(0xFF111816)]
-                      : [const Color(0xFF1F1510), const Color(0xFF111816)],
+                      ? [const Color(0xFF0F2A1A), const Color(0xFF0A1F14), const Color(0xFF111816)]
+                      : [const Color(0xFF2A1A12), const Color(0xFF1F140A), const Color(0xFF111816)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: active ? AppTheme.primary.withValues(alpha: 0.3) : AppTheme.red.withValues(alpha: 0.3),
+                  color: active ? AppTheme.primary.withValues(alpha: 0.32) : AppTheme.red.withValues(alpha: 0.28),
+                  width: 1.2,
                 ),
+                boxShadow: [
+                  BoxShadow(color: (active ? AppTheme.primary : AppTheme.red).withValues(alpha: 0.12), blurRadius: 18, spreadRadius: 1),
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.22), blurRadius: 16, offset: const Offset(0, 6)),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -249,17 +254,62 @@ class _MemberDashboardState extends State<MemberDashboard> {
                         : 'No expiry set',
                     style: AppTheme.bodyMuted,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
+                  // Progress for nindot
+                  Builder(builder: (_) {
+                    final total = user.membershipType == 'annual'
+                        ? 365
+                        : user.membershipType == 'quarterly'
+                            ? 90
+                            : 30;
+                    final progress = active ? (user.daysRemaining / total).clamp(0.0, 1.0) : 0.0;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('${(progress * 100).toInt()}% remaining', style: TextStyle(color: active ? AppTheme.primaryLight : AppTheme.textDim, fontSize: 11, fontWeight: FontWeight.w700)),
+                            Text('$total days plan', style: TextStyle(color: AppTheme.textDim, fontSize: 11)),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: LinearProgressIndicator(
+                            value: progress,
+                            minHeight: 7,
+                            backgroundColor: Colors.white.withValues(alpha: 0.08),
+                            valueColor: AlwaysStoppedAnimation<Color>(active ? AppTheme.primary : AppTheme.red),
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
+                  const SizedBox(height: 14),
                   Row(
                     children: [
-                      const Icon(Icons.card_membership_outlined, size: 14, color: AppTheme.textMuted),
-                      const SizedBox(width: 6),
-                      Text(
-                        user.membershipType != null
-                            ? '${user.membershipType![0].toUpperCase()}${user.membershipType!.substring(1)} Plan'
-                            : 'No Plan',
-                        style: AppTheme.bodyMuted,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(color: AppTheme.bgCardAlt, borderRadius: BorderRadius.circular(10)),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.card_membership_rounded, size: 14, color: AppTheme.primary),
+                            const SizedBox(width: 6),
+                            Text(
+                              user.membershipType != null
+                                  ? '${user.membershipType![0].toUpperCase()}${user.membershipType!.substring(1)} Plan'
+                                  : 'No Plan',
+                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
+                            ),
+                          ],
+                        ),
                       ),
+                      const Spacer(),
+                      const Icon(Icons.verified_rounded, size: 16, color: AppTheme.primary),
+                      const SizedBox(width: 4),
+                      Text(active ? 'Verified Member' : 'Expired', style: TextStyle(color: active ? AppTheme.primary : AppTheme.red, fontSize: 11, fontWeight: FontWeight.w700)),
                     ],
                   ),
                 ],
@@ -267,10 +317,22 @@ class _MemberDashboardState extends State<MemberDashboard> {
             ),
             const SizedBox(height: 20),
 
-            // QR Code Card — green glow when active
+            // QR Code Card — nindot glass + green glow when active
             Container(
-              padding: const EdgeInsets.all(24),
-              decoration: AppTheme.card(glowPrimary: active),
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: active ? [const Color(0xFF0F1F15), const Color(0xFF111816)] : [AppTheme.bgCard, AppTheme.bgCard],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: active ? AppTheme.primary.withValues(alpha: 0.24) : AppTheme.border, width: 1.2),
+                boxShadow: [
+                  if (active) BoxShadow(color: AppTheme.primary.withValues(alpha: 0.18), blurRadius: 28, spreadRadius: 2),
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.20), blurRadius: 18, offset: const Offset(0, 8)),
+                ],
+              ),
               child: Column(
                 children: [
                   const Text('YOUR QR CODE', style: AppTheme.label),
