@@ -38,10 +38,9 @@ class _MemberDashboardState extends State<MemberDashboard> {
     try {
       final user = await AuthService()
           .getUserById(firebaseUser.uid)
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 3), onTimeout: () => null);
 
       if (user == null) {
-        // Genuine missing profile — show error instead of fake member that hides the bug
         setState(() {
           _loadError =
               'Profile not found. Please contact admin to complete your registration.';
@@ -54,7 +53,7 @@ class _MemberDashboardState extends State<MemberDashboard> {
       try {
         history = await AttendanceService()
             .memberHistory(firebaseUser.uid)
-            .timeout(const Duration(seconds: 5));
+            .timeout(const Duration(seconds: 3), onTimeout: () => []);
       } catch (_) {}
 
       setState(() {

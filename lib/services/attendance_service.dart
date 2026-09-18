@@ -83,24 +83,34 @@ class AttendanceService {
 
   // ── Member's own attendance history ───────────────────
   Future<List<Attendance>> memberHistory(String uid) async {
-    final snap = await _db
-        .collection('attendance')
-        .where('memberId', isEqualTo: uid)
-        .orderBy('timeIn', descending: true)
-        .limit(30)
-        .get();
-    return snap.docs.map((d) => Attendance.fromMap(d.data(), d.id)).toList();
+    try {
+      final snap = await _db
+          .collection('attendance')
+          .where('memberId', isEqualTo: uid)
+          .orderBy('timeIn', descending: true)
+          .limit(30)
+          .get()
+          .timeout(const Duration(seconds: 3));
+      return snap.docs.map((d) => Attendance.fromMap(d.data(), d.id)).toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   // ── All-time count for dashboard ───────────────────────
   Future<int> totalCheckInsToday() async {
-    final today = DateTime.now();
-    final startOfDay = DateTime(today.year, today.month, today.day);
-    final startTs = Timestamp.fromDate(startOfDay);
-    final snap = await _db
-        .collection('attendance')
-        .where('timeIn', isGreaterThanOrEqualTo: startTs)
-        .get();
-    return snap.docs.length;
+    try {
+      final today = DateTime.now();
+      final startOfDay = DateTime(today.year, today.month, today.day);
+      final startTs = Timestamp.fromDate(startOfDay);
+      final snap = await _db
+          .collection('attendance')
+          .where('timeIn', isGreaterThanOrEqualTo: startTs)
+          .get()
+          .timeout(const Duration(seconds: 3));
+      return snap.docs.length;
+    } catch (_) {
+      return 0;
+    }
   }
 }

@@ -128,10 +128,16 @@ class _DashboardHomeState extends State<_DashboardHome> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final members = await AuthService().getAllMembers();
-      final checkIns = await AttendanceService().totalCheckInsToday();
+      // Each with 3s timeout so whole screen never hangs "loading perme"
+      final members = await AuthService()
+          .getAllMembers()
+          .timeout(const Duration(seconds: 3), onTimeout: () => []);
+      final checkIns = await AttendanceService()
+          .totalCheckInsToday()
+          .timeout(const Duration(seconds: 3), onTimeout: () => 0);
       final now = DateTime.now();
       final nextWeek = now.add(const Duration(days: 7));
+      if (!mounted) return;
       setState(() {
         _totalMembers = members.length;
         _activeMembers =
@@ -145,6 +151,7 @@ class _DashboardHomeState extends State<_DashboardHome> {
         _loading = false;
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() => _loading = false);
     }
   }
@@ -298,8 +305,27 @@ class _DashboardHomeState extends State<_DashboardHome> {
                   ),
                   const SizedBox(height: 8),
                   StreamBuilder(
-                    stream: AttendanceService().todayAttendance(),
+                    stream: AttendanceService()
+                        .todayAttendance()
+                        .timeout(const Duration(seconds: 5),
+                            onTimeout: (sink) => sink.add([])),
                     builder: (context, snap) {
+                      if (snap.hasError) {
+                        return Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: AppTheme.card(),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline, color: AppTheme.textMuted, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text('Attendance unavailable: ${snap.error}',
+                                    style: AppTheme.bodyMuted.copyWith(fontSize: 12)),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
                       if (!snap.hasData) {
                         return const Center(
                             child: CircularProgressIndicator(
