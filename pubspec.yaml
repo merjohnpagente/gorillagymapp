@@ -1,0 +1,49 @@
+name: gorilla_gym
+description: Gorilla Gym Management System
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase
+  firebase_core: ^3.1.0
+  firebase_auth: ^5.1.0
+  cloud_firestore: ^5.1.0
+
+  # QR Code generation (for member QR display)
+  qr_flutter: ^4.1.0
+
+  # QR Code scanning (for admin to scan member QR)
+  mobile_scanner: ^5.2.3
+
+  # Icons
+  cupertino_icons: ^1.0.6
+  google_sign_in: ^7.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/gym_hero.jpg
+    - assets/images/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21
+  web:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
+    background_color: "#070A08"
+    theme_color: "#00C950"
